@@ -1,0 +1,15 @@
+# Daten nicht hochladen
+/data/
+/sharks/
+*.zip
+
+# macOS
+.DS_Store
+
+# virtuelle Umgebung
+venv/
+.venv/
+
+# Python-Kram
+__pycache__/
+*.pyc
