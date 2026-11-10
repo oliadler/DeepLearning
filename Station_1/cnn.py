@@ -3,6 +3,7 @@ from keras import layers
 from matplotlib import pyplot as plt
 import numpy as np
 import tensorflow as tf
+import time
 
 keras.utils.set_random_seed(42)
 
@@ -13,6 +14,11 @@ TEST_PFAD = "data/sharks_split/test"
 PICTURE_SIZE = (224,224)
 BATCH_SIZE = 64
 CUTOUT_SIDE = 56
+EPOCHS = 60
+USE_CUTOUT = True
+USE_AUGMIX = False
+
+
 
 augmix = keras.layers.AugMix(value_range=(0, 255))
 
@@ -101,11 +107,14 @@ for bilder, l in training_data.take(1):
 
 
 def augment_image(image, label):
-    augmix_img = augmix(image, training=True)
-    cutout_img = cutout_tf(augmix_img)
-    return cutout_img,label
+    if USE_AUGMIX:
+        image = augmix(image, training=True)
+    if USE_CUTOUT:
+        image = cutout_tf(image)
+    return image,label
     
-training_data = training_data.unbatch().map(augment_image).batch(BATCH_SIZE)
+if USE_AUGMIX or USE_CUTOUT:   
+    training_data = training_data.unbatch().map(augment_image).batch(BATCH_SIZE)
 
 # testweise
 """ for images, labels in training_data.take(1):
@@ -134,12 +143,61 @@ print(len(mobile_net.layers))
 154 """
 
 inputs = keras.Input(shape=PICTURE_SIZE + (3,))
-x = augmentation(training_data)
+x = augmentation(inputs)
 x = keras.applications.mobilenet_v2.preprocess_input(x)
 x = mobile_net(x, training=False)
 x = layers.GlobalAveragePooling2D()(x)
 x = layers.Dropout(0.3)(x)
-outputs = layers.Dense(_____, activation="softmax")(x)
+outputs = layers.Dense(count_classes, activation="softmax")(x)
 
 model = keras.Model(inputs, outputs)
 model.summary()
+
+model.compile(
+    optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"],
+)
+callbacks = [
+    keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True),
+    keras.callbacks.ModelCheckpoint("best_cnn.keras", save_best_only=True),
+]
+start_time = time.time()
+history = model.fit(
+    training_data,
+    validation_data=val_data,
+    epochs=EPOCHS,
+    callbacks=callbacks,
+)
+training_time = time.time() - start_time
+print(f"Training hat {training_time:.0f} Sekunden gedauert")
+
+
+plt.figure(figsize=(12, 4))
+
+plt.subplot(1, 2, 1)
+plt.plot(history.history["accuracy"], label="Training")
+plt.plot(history.history["val_accuracy"], label="Validierung")
+plt.title("Accuracy")
+plt.xlabel("Epoche")
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(history.history["loss"], label="Training")
+plt.plot(history.history["val_loss"], label="Validierung")
+plt.title("LOSS")
+plt.xlabel("Epoche")
+plt.legend()
+
+plt.savefig("lernkurven_cnn_without_augmix.png", dpi=200)
+plt.show()
+
+val_loss, val_accuracy = model.evaluate(val_data)
+print(f"Beste Validierungs-Accuracy: {val_accuracy:.1%}")
+
+
+# Lauf	AugMix + Cutout	Epochen	val_accuracy	Trainingszeit
+# 1	    ja	                60	    67.1 %	        462 s underfitting
+# 2     nein	            34	    72.2 %	        226 s overfitting
+# 3     ja       nein       60      67.2 %        450 s
+# 4     nein     ja         44      74.1 %        282 s
