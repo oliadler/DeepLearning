@@ -189,15 +189,34 @@ plt.title("LOSS")
 plt.xlabel("Epoche")
 plt.legend()
 
-plt.savefig("lernkurven_cnn_without_augmix.png", dpi=200)
+plt.savefig("lernkurven_cnn_without_augmix_03_drop.png", dpi=200)
 plt.show()
 
 val_loss, val_accuracy = model.evaluate(val_data)
 print(f"Beste Validierungs-Accuracy: {val_accuracy:.1%}")
 
 
-# Lauf	AugMix + Cutout	Epochen	val_accuracy	Trainingszeit
-# 1	    ja	                60	    67.1 %	        462 s underfitting
-# 2     nein	            34	    72.2 %	        226 s overfitting
-# 3     ja       nein       60      67.2 %        450 s
-# 4     nein     ja         44      74.1 %        282 s
+# Lauf	AugMix + Cutout	Epochen	val_accuracy	Trainingszeit.         Dropout  Test
+# 1	    ja	                60	    67.1 %	        462 s underfitting. 0.3
+# 2     nein	            34	    72.2 %	        226 s overfitting   0.3
+# 3     ja       nein       60      67.2 %        450 s                 0.3
+# 4     nein     ja         44      74.1 %        282 s                 0.3     76.2 %
+# 4     nein     ja         45      69.4 5        277 s                 0.5
+
+test_loss, test_accuracy = model.evaluate(test_data)
+print(f"Test Accuracy:{test_accuracy:.1%}")
+
+# welche bilder sind falsch?
+probabilities = model.predict(test_data)
+predictions = np.argmax(probabilities, axis=1)
+confidence = np.max(predictions,axis=1)
+true_labels = np.concatenate([labels.numpy() for images, labels in test_data])
+
+print(probabilities.shape)
+print(predictions.shape)
+print(true_labels.shape)
+
+# falsche Bilder
+for path, true, pred, conf in zip(test_data.file_paths, true_labels, predictions, confidence):
+    if pred != true:
+        print(f"{path}: true={true} predicted={pred} ({conf:.1%})")
