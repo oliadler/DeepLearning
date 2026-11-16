@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import tensorflow as tf
 import time
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 
 keras.utils.set_random_seed(42)
 
@@ -12,7 +13,7 @@ VAL_PFAD = "data/sharks_split/val"
 TEST_PFAD = "data/sharks_split/test"
 
 PICTURE_SIZE = (224,224)
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 CUTOUT_SIDE = 56
 EPOCHS = 60
 USE_CUTOUT = True
@@ -172,6 +173,7 @@ history = model.fit(
 training_time = time.time() - start_time
 print(f"Training hat {training_time:.0f} Sekunden gedauert")
 
+model.save("cnn_final_cutout.keras")
 
 plt.figure(figsize=(12, 4))
 
@@ -196,12 +198,13 @@ val_loss, val_accuracy = model.evaluate(val_data)
 print(f"Beste Validierungs-Accuracy: {val_accuracy:.1%}")
 
 
-# Lauf	AugMix + Cutout	Epochen	val_accuracy	Trainingszeit.         Dropout  Test
-# 1	    ja	                60	    67.1 %	        462 s underfitting. 0.3
-# 2     nein	            34	    72.2 %	        226 s overfitting   0.3
-# 3     ja       nein       60      67.2 %        450 s                 0.3
-# 4     nein     ja         44      74.1 %        282 s                 0.3     76.2 %
-# 4     nein     ja         45      69.4 5        277 s                 0.5
+# Lauf	AugMix + Cutout	Epochen	val_accuracy	Trainingszeit.         Dropout  Test    BATCH
+# 1	    ja	                60	    67.1 %	        462 s underfitting. 0.3               64
+# 2     nein	            34	    72.2 %	        226 s overfitting   0.3               64
+# 3     ja       nein       60      67.2 %        450 s                 0.3               64
+# 4     nein     ja         44      74.1 %        282 s                 0.3     76.2 %    64
+# 5     nein     ja         45      69.4 %       277 s                 0.5               64
+# 6     nein     ja         44        73,5 %            298 s           0.3           0.3     76,2 %    32
 
 test_loss, test_accuracy = model.evaluate(test_data)
 print(f"Test Accuracy:{test_accuracy:.1%}")
@@ -209,7 +212,7 @@ print(f"Test Accuracy:{test_accuracy:.1%}")
 # welche bilder sind falsch?
 probabilities = model.predict(test_data)
 predictions = np.argmax(probabilities, axis=1)
-confidence = np.max(predictions,axis=1)
+confidence = np.max(probabilities,axis=1)
 true_labels = np.concatenate([labels.numpy() for images, labels in test_data])
 
 print(probabilities.shape)
@@ -219,4 +222,13 @@ print(true_labels.shape)
 # falsche Bilder
 for path, true, pred, conf in zip(test_data.file_paths, true_labels, predictions, confidence):
     if pred != true:
-        print(f"{path}: true={true} predicted={pred} ({conf:.1%})")
+        print(f"{path}: true={class_names[true]} predicted={class_names[pred]} ({conf:.1%})")
+
+print(classification_report(true_labels,predictions,target_names=class_names))
+matrix = confusion_matrix(true_labels, predictions)
+
+fig, ax = plt.subplots(figsize=(10,10))
+ConfusionMatrixDisplay(matrix, display_labels=class_names).plot(ax=ax, xticks_rotation=90)
+plt.tight_layout()
+plt.savefig("confusion_matrix_cnn.png", dpi=200)
+plt.show()
