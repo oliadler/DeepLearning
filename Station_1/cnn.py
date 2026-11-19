@@ -191,7 +191,7 @@ plt.title("LOSS")
 plt.xlabel("Epoche")
 plt.legend()
 
-plt.savefig("lernkurven_cnn_without_augmix_03_drop.png", dpi=200)
+plt.savefig("lernkurven_cnn_without_cutout_03_drop.png", dpi=200)
 plt.show()
 
 val_loss, val_accuracy = model.evaluate(val_data)

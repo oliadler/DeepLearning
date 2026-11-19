@@ -6,7 +6,6 @@ import numpy as np
 import tensorflow as tf
 import time
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
-import numpy as np
  
 
 TRAIN_PFAD = "data/sharks_split/train"
@@ -19,7 +18,9 @@ CUTOUT_SIDE = 56
 EPOCHS = 60
 USE_CUTOUT = True
 USE_AUGMIX = False
+
 augmix = keras.layers.AugMix(value_range=(0, 255))
+keras.utils.set_random_seed(42)
 
 training_data = keras.utils.image_dataset_from_directory(
     TRAIN_PFAD,
@@ -99,3 +100,65 @@ callbacks = [
     keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True),
     keras.callbacks.ModelCheckpoint("best_vit.keras", save_best_only=True),
 ]
+
+start = time.time()
+history = model.fit(
+    training_data,
+    validation_data=val_data,
+    epochs=EPOCHS,
+    callbacks=callbacks
+)
+endtime = time.time() - start
+
+print(f"Training hat {endtime:.0f} Sekunden gedauert")
+
+model.save("vit_final_cutout.keras")
+
+plt.figure(figsize=(12, 4))
+
+plt.subplot(1, 2, 1)
+plt.plot(history.history["accuracy"], label="Training")
+plt.plot(history.history["val_accuracy"], label="Validierung")
+plt.title("Accuracy")
+plt.xlabel("Epoche")
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(history.history["loss"], label="Training")
+plt.plot(history.history["val_loss"], label="Validierung")
+plt.title("LOSS")
+plt.xlabel("Epoche")
+plt.legend()
+
+plt.savefig("lernkurven_vit_without_cutout_03_drop.png", dpi=200)
+plt.show()
+
+val_loss, val_accuracy = model.evaluate(val_data)
+print(f"Beste Validierungs-Accuracy: {val_accuracy:.1%}")
+
+test_loss, test_accuracy = model.evaluate(test_data)
+print(f"Test Accuracy:{test_accuracy:.1%}")
+
+# welche bilder sind falsch?
+probabilities = model.predict(test_data)
+predictions = np.argmax(probabilities, axis=1)
+confidence = np.max(probabilities,axis=1)
+true_labels = np.concatenate([labels.numpy() for images, labels in test_data])
+
+print(probabilities.shape)
+print(predictions.shape)
+print(true_labels.shape)
+
+# falsche Bilder
+for path, true, pred, conf in zip(test_data.file_paths, true_labels, predictions, confidence):
+    if pred != true:
+        print(f"{path}: true={class_names[true]} predicted={class_names[pred]} ({conf:.1%})")
+
+print(classification_report(true_labels,predictions,target_names=class_names))
+matrix = confusion_matrix(true_labels, predictions)
+
+fig, ax = plt.subplots(figsize=(10,10))
+ConfusionMatrixDisplay(matrix, display_labels=class_names).plot(ax=ax, xticks_rotation=90)
+plt.tight_layout()
+plt.savefig("confusion_matrix_vit.png", dpi=200)
+plt.show()
