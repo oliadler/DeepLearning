@@ -198,14 +198,6 @@ val_loss, val_accuracy = model.evaluate(val_data)
 print(f"Beste Validierungs-Accuracy: {val_accuracy:.1%}")
 
 
-# Lauf	AugMix + Cutout	Epochen	val_accuracy	Trainingszeit.         Dropout  Test    BATCH
-# 1	    ja	                60	    67.1 %	        462 s underfitting. 0.3               64
-# 2     nein	            34	    72.2 %	        226 s overfitting   0.3               64
-# 3     ja       nein       60      67.2 %        450 s                 0.3               64
-# 4     nein     ja         44      74.1 %        282 s                 0.3     76.2 %    64
-# 5     nein     ja         45      69.4 %       277 s                 0.5               64
-# 6     nein     ja         44        73,5 %            298 s           0.3           0.3     76,2 %    32
-
 test_loss, test_accuracy = model.evaluate(test_data)
 print(f"Test Accuracy:{test_accuracy:.1%}")
 
@@ -223,6 +215,7 @@ print(true_labels.shape)
 for path, true, pred, conf in zip(test_data.file_paths, true_labels, predictions, confidence):
     if pred != true:
         print(f"{path}: true={class_names[true]} predicted={class_names[pred]} ({conf:.1%})")
+
 
 print(classification_report(true_labels,predictions,target_names=class_names))
 matrix = confusion_matrix(true_labels, predictions)

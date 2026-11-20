@@ -15,7 +15,7 @@ TEST_PFAD = "data/sharks_split/test"
 PICTURE_SIZE = (224,224)
 BATCH_SIZE = 32
 CUTOUT_SIDE = 56
-EPOCHS = 1
+EPOCHS = 60
 USE_CUTOUT = True
 USE_AUGMIX = False
 LORA_RANK = 4
@@ -92,14 +92,17 @@ outputs = layers.Dense(count_classes, activation="softmax")(x)
 model = keras.Model(inputs, outputs)
 model.summary()
 
+for weight in model.trainable_weights:
+    print(weight.path, weight.shape)
+
 model.compile(
-    optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+    optimizer=keras.optimizers.Adam(learning_rate=1e-4),
     loss="sparse_categorical_crossentropy",
     metrics=["accuracy"],
 )
 callbacks = [
     keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True),
-    keras.callbacks.ModelCheckpoint("best_vit_lora.keras", save_best_only=True),
+    keras.callbacks.ModelCheckpoint("best_vit_lora4_learn_4.keras", save_best_only=True),
 ]
 
 start = time.time()
@@ -113,7 +116,7 @@ endtime = time.time() - start
 
 print(f"Training hat {endtime:.0f} Sekunden gedauert")
 
-model.save("vit_lora_final_cutout_rank4.keras")
+model.save("vit_lora_final_cutout_rank8_learn4.keras")
 
 plt.figure(figsize=(12, 4))
 
@@ -131,7 +134,7 @@ plt.title("LOSS")
 plt.xlabel("Epoche")
 plt.legend()
 
-plt.savefig("lernkurven_vit_lora_without_cutout_03_drop_rank4.png", dpi=200)
+plt.savefig("lernkurven_vit_lora_without_cutout_03_drop_rank4_learn4.png", dpi=200)
 plt.show()
 
 val_loss, val_accuracy = model.evaluate(val_data)
@@ -161,5 +164,5 @@ matrix = confusion_matrix(true_labels, predictions)
 fig, ax = plt.subplots(figsize=(10,10))
 ConfusionMatrixDisplay(matrix, display_labels=class_names).plot(ax=ax, xticks_rotation=90)
 plt.tight_layout()
-plt.savefig("confusion_matrix_vit_lora_rank4.png", dpi=200)
+plt.savefig("confusion_matrix_vit_lora_rank4_learn4.png", dpi=200)
 plt.show()

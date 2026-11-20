@@ -98,7 +98,7 @@ model.compile(
 )
 callbacks = [
     keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True),
-    keras.callbacks.ModelCheckpoint("best_vit.keras", save_best_only=True),
+    keras.callbacks.ModelCheckpoint("best_vit_.keras", save_best_only=True),
 ]
 
 start = time.time()
@@ -112,7 +112,7 @@ endtime = time.time() - start
 
 print(f"Training hat {endtime:.0f} Sekunden gedauert")
 
-model.save("vit_final_cutout.keras")
+model.save("vit_final_cutout_lp.keras")
 
 plt.figure(figsize=(12, 4))
 
@@ -130,7 +130,7 @@ plt.title("LOSS")
 plt.xlabel("Epoche")
 plt.legend()
 
-plt.savefig("lernkurven_vit_without_cutout_03_drop.png", dpi=200)
+plt.savefig("lernkurven_vit_without_cutout_03_drop_lp.png", dpi=200)
 plt.show()
 
 val_loss, val_accuracy = model.evaluate(val_data)
@@ -160,5 +160,5 @@ matrix = confusion_matrix(true_labels, predictions)
 fig, ax = plt.subplots(figsize=(10,10))
 ConfusionMatrixDisplay(matrix, display_labels=class_names).plot(ax=ax, xticks_rotation=90)
 plt.tight_layout()
-plt.savefig("confusion_matrix_vit.png", dpi=200)
+plt.savefig("confusion_matrix_vitlp.png", dpi=200)
 plt.show()
